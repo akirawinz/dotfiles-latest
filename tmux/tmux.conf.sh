@@ -248,8 +248,8 @@ colorscheme_selector="~/github/dotfiles-latest/colorscheme/colorscheme-selector.
 # Don't use C-z, not sure what its for
 unbind C-u
 bind-key -r C-u run-shell "$tmux_sessionizer ~/github/dotfiles-latest"
-unbind C-i
-bind-key -r C-i run-shell "$tmux_sessionizer ~/github/watusy"
+unbind C-r
+bind-key -r C-i run-shell "$tmux_sessionizer ~/Projects/findx/kyc"
 unbind C-o
 # bind-key -r C-o run-shell "$tmux_sessionizer ~/github/linkarzu.github.io"
 bind-key -r C-o run-shell "$tmux_sessionizer /System/Volumes/Data/mnt/github_nfs/linkarzu.github.io"

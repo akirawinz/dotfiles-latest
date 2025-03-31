@@ -56,22 +56,22 @@ if command -v sketchybar &>/dev/null; then
     yabai -m config left_padding 0
     yabai -m config right_padding 230
     # Resolution for my shorts
+  elif [[ "$display_resolution" == *"3024 x 1964"* ]]; then
+    # 14-inch MacBook Pro
+    yabai -m config top_padding 8
+    yabai -m config bottom_padding 0
+    yabai -m config left_padding 0
+    # yabai -m config right_padding 230
+    yabai -m config right_padding 0
   elif [[ "$display_resolution" == *"1536 x 2048"* ]]; then
     yabai -m config top_padding 38
     yabai -m config bottom_padding 220
     yabai -m config left_padding 0
     yabai -m config right_padding 0
-  elif [[ "$display_resolution" == *"3200 x 1800"* ]]; then
+  else
     # # This matches my asus 27 inch monitor
     # # yabai -m config top_padding 39
     yabai -m config top_padding 38
-    yabai -m config bottom_padding 0
-    yabai -m config left_padding 0
-    yabai -m config right_padding 230
-  elif [[ "$display_resolution" == *"3024 x 1964"* ]]; then
-    # # This matches my macbook 14 inch
-    # # yabai -m config top_padding 39
-    yabai -m config top_padding 10
     yabai -m config bottom_padding 0
     yabai -m config left_padding 0
     yabai -m config right_padding 230
@@ -80,13 +80,10 @@ if command -v sketchybar &>/dev/null; then
     # yabai -m config bottom_padding 20
     # yabai -m config left_padding 500
     # yabai -m config right_padding 100
-
     # For youtube thumbnails
     # yabai -m config right_padding 500
-
     # For youtube posts and neomemes
     # yabai -m config right_padding 800
-
     # For shorts
     # yabai -m config bottom_padding 400
   fi
@@ -94,6 +91,8 @@ else
   yabai -m config top_padding 02
   yabai -m config bottom_padding 00
 fi
+
+Jot something down
 
 ###############################################################################
 #                                 Paddings
