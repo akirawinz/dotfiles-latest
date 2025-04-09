@@ -67,6 +67,26 @@ const rules: KarabinerRules[] = [
       },
     ],
   },
+
+  {
+    description: "right_arrow -> sticky notes",
+    manipulators: [
+      {
+        from: {
+          key_code: "right_arrow",
+          modifiers: {
+            mandatory: ["command"],
+          },
+        },
+        to: [
+          {
+            shell_command: "open -a 'kitty.app'",
+          },
+        ],
+        type: "basic",
+      },
+    ],
+  },
   {
     description: "left_arrow -> cmd+tab+tab",
     manipulators: [
@@ -136,12 +156,12 @@ const rules: KarabinerRules[] = [
     // All the following combinations require the "hyper" key as well
     left_shift: {
       t: app("Ghostty"),
-      g: app("Lens"),
       7: app("Slack"),
       b: app("Zen"),
       9: app("1Password"),
       8: app("Line"),
       c: app("Claude"),
+      g: app("ChatGPT"),
       6: app("Discord"),
       0: app("Lens"),
     },

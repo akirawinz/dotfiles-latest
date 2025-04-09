@@ -251,8 +251,7 @@ bind-key -r C-u run-shell "$tmux_sessionizer ~/github/dotfiles-latest"
 unbind C-r
 bind-key -r C-i run-shell "$tmux_sessionizer ~/Projects/findx/kyc"
 unbind C-o
-# bind-key -r C-o run-shell "$tmux_sessionizer ~/github/linkarzu.github.io"
-bind-key -r C-o run-shell "$tmux_sessionizer /System/Volumes/Data/mnt/github_nfs/linkarzu.github.io"
+bind-key -r C-o run-shell "$tmux_sessionizer ~/Projects/dt/vene"
 unbind C-p
 bind-key -r C-p run-shell "$tmux_sessionizer ~/github/scripts"
 unbind C-t
