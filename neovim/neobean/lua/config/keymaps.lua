@@ -664,6 +664,15 @@ vim.keymap.set("n", "J", "mzJ`z")
 vim.keymap.set("n", "n", "nzzzv")
 vim.keymap.set("n", "N", "Nzzzv")
 
+-- Launch, limiting search/replace to current file
+-- https://github.com/MagicDuck/grug-far.nvim?tab=readme-ov-file#-cookbook
+vim.keymap.set(
+  { "v" },
+  "<leader>s1",
+  '<cmd>lua require("grug-far").open({ prefills = { paths = vim.fn.expand("%") } })<cr>',
+  { noremap = true, silent = true }
+)
+
 -- Replaces the word I'm currently on, opens a terminal so that I start typing the new word
 -- It replaces the word globally across the entire file
 vim.keymap.set(
@@ -2834,6 +2843,124 @@ end, { desc = "[P]Paste Github link" })
 --   vim.api.nvim_input("<C-D>")
 -- end, { desc = "[P]Decrease Indent" })
 
+local function get_markdown_headings()
+  local cursor_line = vim.fn.line(".")
+  local parser = vim.treesitter.get_parser(0, "markdown")
+  if not parser then
+    vim.notify("Markdown parser not available", vim.log.levels.ERROR)
+    return nil, nil, nil, nil, nil, nil
+  end
+  local tree = parser:parse()[1]
+  local query = vim.treesitter.query.parse(
+    "markdown",
+    [[
+    (atx_heading (atx_h1_marker) @h1)
+    (atx_heading (atx_h2_marker) @h2)
+    (atx_heading (atx_h3_marker) @h3)
+    (atx_heading (atx_h4_marker) @h4)
+    (atx_heading (atx_h5_marker) @h5)
+    (atx_heading (atx_h6_marker) @h6)
+  ]]
+  )
+  -- Collect and sort all headings
+  local headings = {}
+  for id, node in query:iter_captures(tree:root(), 0) do
+    local start_line = node:start() + 1 -- Convert to 1-based
+    table.insert(headings, { line = start_line, level = id })
+  end
+  table.sort(headings, function(a, b)
+    return a.line < b.line
+  end)
+  -- Find current heading and track its index
+  local current_heading, current_idx, next_heading, next_same_heading
+  for idx, h in ipairs(headings) do
+    if h.line <= cursor_line then
+      current_heading = h
+      current_idx = idx
+    elseif not next_heading then
+      next_heading = h -- First heading after cursor
+    end
+  end
+  -- Find next same-level heading if current exists
+  if current_heading then
+    -- Look for next same-level after current index
+    for i = current_idx + 1, #headings do
+      local h = headings[i]
+      if h.level == current_heading.level then
+        next_same_heading = h
+        break
+      end
+    end
+  end
+  -- Return all values (nil if not found)
+  return current_heading and current_heading.line or nil,
+    current_heading and current_heading.level or nil,
+    next_heading and next_heading.line or nil,
+    next_heading and next_heading.level or nil,
+    next_same_heading and next_same_heading.line or nil,
+    next_same_heading and next_same_heading.level or nil
+end
+
+-- Print details of current markdown heading, next heading and next same level heading
+vim.keymap.set("n", "<leader>mT", function()
+  local cl, clvl, nl, nlvl, nsl, nslvl = get_markdown_headings()
+  local message_parts = {}
+  if cl then
+    table.insert(message_parts, string.format("Current: H%d (line %d)", clvl, cl))
+  else
+    table.insert(message_parts, "Not in a section")
+  end
+  if nl then
+    table.insert(message_parts, string.format("Next: H%d (line %d)", nlvl, nl))
+  end
+  if nsl then
+    table.insert(message_parts, string.format("Next H%d: line %d", nslvl, nsl))
+  end
+  vim.notify(table.concat(message_parts, " | "), vim.log.levels.INFO)
+end, { desc = "Show current, next, and same-level Markdown headings" })
+
+-- -- Create next heading similar to the way its done in emacs lamw26wmal
+-- -- When inside tmux
+-- -- C-CR does not work because Neovim recognizes both CR and C-CR as the same "\r",
+-- -- you can see this with:
+-- -- :lua print(vim.inspect(vim.fn.getcharstr()))
+-- --
+-- -- If I run this outside tmux, for C-CR, in Ghostty I get
+-- -- "<80><fc>\4\r"
+-- -- So to fix this, I'm sending the keys in my tmux.conf file
+vim.keymap.set({ "n", "i" }, "<C-CR>", function()
+  -- Capture all needed return values
+  local _, level, next_line, next_level, next_same_line = get_markdown_headings()
+  if not level then
+    vim.notify("No heading context found", vim.log.levels.WARN)
+    return
+  end
+  local heading_prefix = string.rep("#", level) .. " "
+  local insert_line = next_same_line and next_same_line or vim.fn.line("$") + 1
+  -- If there’s a higher-level heading coming next, insert above it
+  if next_line and next_level and (next_level < level) then
+    insert_line = next_line
+  end
+  -- Insert heading line and an empty line after it
+  vim.api.nvim_buf_set_lines(0, insert_line - 1, insert_line - 1, false, { heading_prefix, "" })
+  -- Move cursor to the end of heading marker
+  vim.api.nvim_win_set_cursor(0, { insert_line, #heading_prefix })
+  -- Enter insert mode and type a space
+  vim.api.nvim_feedkeys("i ", "n", false)
+end, { desc = "[P]Insert heading emacs style" })
+
+-- -- When inside tmux
+-- -- C-CR does not work because Neovim recognizes both CR and C-CR as the same "\r",
+-- -- you can see this with:
+-- -- :lua print(vim.inspect(vim.fn.getcharstr()))
+-- --
+-- -- If I run this outside tmux, for C-CR, in Ghostty I get
+-- -- "<80><fc>\4\r"
+-- -- So to fix this, I'm sending the keys in my tmux.conf file
+-- vim.keymap.set({ "n", "i" }, "<C-CR>", function()
+--   vim.notify("Ctrl+Enter detected", vim.log.levels.INFO)
+-- end, { desc = "Ctrl+Enter CSIu mapping" })
+
 -------------------------------------------------------------------------------
 --                           Folding section
 -------------------------------------------------------------------------------
@@ -2841,19 +2968,49 @@ end, { desc = "[P]Paste Github link" })
 -- Checks each line to see if it matches a markdown heading (#, ##, etc.):
 -- It’s called implicitly by Neovim’s folding engine by vim.opt_local.foldexpr
 function _G.markdown_foldexpr()
-  local line = vim.fn.getline(vim.v.lnum)
-  local heading_level = line:match("^(#+)%s")
-  if heading_level then
-    return ">" .. #heading_level
-  else
-    return "="
+  local lnum = vim.v.lnum
+  local line = vim.fn.getline(lnum)
+  local heading = line:match("^(#+)%s")
+  if heading then
+    local level = #heading
+    if level == 1 then
+      -- Special handling for H1
+      if lnum == 1 then
+        return ">1"
+      else
+        local frontmatter_end = vim.b.frontmatter_end
+        if frontmatter_end and (lnum == frontmatter_end + 1) then
+          return ">1"
+        end
+      end
+    elseif level >= 2 and level <= 6 then
+      -- Regular handling for H2-H6
+      return ">" .. level
+    end
   end
+  return "="
 end
 
 local function set_markdown_folding()
   vim.opt_local.foldmethod = "expr"
   vim.opt_local.foldexpr = "v:lua.markdown_foldexpr()"
   vim.opt_local.foldlevel = 99
+
+  -- Detect frontmatter closing line
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  local found_first = false
+  local frontmatter_end = nil
+  for i, line in ipairs(lines) do
+    if line == "---" then
+      if not found_first then
+        found_first = true
+      else
+        frontmatter_end = i
+        break
+      end
+    end
+  end
+  vim.b.frontmatter_end = frontmatter_end
 end
 
 -- Use autocommand to apply only to markdown files
@@ -3604,51 +3761,53 @@ end, { desc = "Decrease headings in visual selection" })
 --   vim.cmd("nohlsearch")
 -- end, { desc = "[P]Decrease headings with confirmation" })
 
--- To open markdown links, the cursor usually has to be in this position for gx to
--- work [link text](https://test<cursor>site.com)
--- I want to open links if I run gx in the `link text` section too lamw26wmal
---
--- Switched this keymap to an autocmd as links in non markdown files were not
--- being called correctly
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = "markdown",
-  callback = function()
-    vim.keymap.set("n", "gx", function()
-      local line = vim.fn.getline(".")
-      local cursor_col = vim.fn.col(".")
-      local pos = 1
-      while pos <= #line do
-        local open_bracket = line:find("%[", pos)
-        if not open_bracket then
-          break
-        end
-        local close_bracket = line:find("%]", open_bracket + 1)
-        if not close_bracket then
-          break
-        end
-        local open_paren = line:find("%(", close_bracket + 1)
-        if not open_paren then
-          break
-        end
-        local close_paren = line:find("%)", open_paren + 1)
-        if not close_paren then
-          break
-        end
-        if
-          (cursor_col >= open_bracket and cursor_col <= close_bracket)
-          or (cursor_col >= open_paren and cursor_col <= close_paren)
-        then
-          local url = line:sub(open_paren + 1, close_paren - 1)
-          vim.ui.open(url)
-          return
-        end
-        pos = close_paren + 1
-      end
-      -- fallback to default gx behavior
-      vim.cmd("normal! gx")
-    end, { buffer = true, desc = "[P]Better URL opener for markdown" })
-  end,
-})
+-- -- NOTE: Ignore this, it works out of the box, see
+-- -- https://www.reddit.com/r/neovim/comments/1jozord/comment/mkvmp7s/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
+-- -- To open markdown links, the cursor usually has to be in this position for gx
+-- -- to work [link text](https://test<cursor>site.com)
+-- -- I want to open links if I run gx in the `link text` section too lamw26wmal
+-- --
+-- -- Switched this keymap to an autocmd as links in non markdown files were not
+-- -- being called correctly
+-- vim.api.nvim_create_autocmd("FileType", {
+--   pattern = "markdown",
+--   callback = function()
+--     vim.keymap.set("n", "gx", function()
+--       local line = vim.fn.getline(".")
+--       local cursor_col = vim.fn.col(".")
+--       local pos = 1
+--       while pos <= #line do
+--         local open_bracket = line:find("%[", pos)
+--         if not open_bracket then
+--           break
+--         end
+--         local close_bracket = line:find("%]", open_bracket + 1)
+--         if not close_bracket then
+--           break
+--         end
+--         local open_paren = line:find("%(", close_bracket + 1)
+--         if not open_paren then
+--           break
+--         end
+--         local close_paren = line:find("%)", open_paren + 1)
+--         if not close_paren then
+--           break
+--         end
+--         if
+--           (cursor_col >= open_bracket and cursor_col <= close_bracket)
+--           or (cursor_col >= open_paren and cursor_col <= close_paren)
+--         then
+--           local url = line:sub(open_paren + 1, close_paren - 1)
+--           vim.ui.open(url)
+--           return
+--         end
+--         pos = close_paren + 1
+--       end
+--       -- fallback to default gx behavior
+--       vim.cmd("normal! gx")
+--     end, { buffer = true, desc = "[P]Better URL opener for markdown" })
+--   end,
+-- })
 
 -- ############################################################################
 --                       End of markdown section

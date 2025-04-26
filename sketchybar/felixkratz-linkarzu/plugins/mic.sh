@@ -31,9 +31,9 @@ fi
 # Validate MIC_NAME as UTF-8, replace invalid sequences with a '?', then compare with original
 VALIDATED_MIC_NAME=$(echo "$MIC_NAME" | iconv -f UTF-8 -t UTF-8//IGNORE)
 
-# I'll be using this in ~/github/dotfiles-latest/scripts/macos/mac/200-micMute.sh
+# I'll be using this in ~/github/dotfiles-latest/scripts/macos/mac/misc/200-micMute.sh
 # That file will have something like "Yeti" or "AirPods"
-echo "$VALIDATED_MIC_NAME" >"/tmp/${USER}_mic_name"
+echo "$VALIDATED_MIC_NAME" >"$MIC_NAME_FILE"
 
 # Get the current microphone volume
 MIC_VOLUME=$(osascript -e 'input volume of (get volume settings)')
@@ -48,13 +48,13 @@ else
   # Update SketchyBar with the microphone's name and volume
   if [[ $MIC_VOLUME -eq 0 ]]; then
     sketchybar -m --set mic label="$MIC_LABEL " icon= icon.color=$RED label.color=$RED
-  elif [[ $MIC_VOLUME -gt 0 && $MIC_VOLUME -lt 60 ]]; then
+  elif [[ $MIC_VOLUME -gt 0 && $MIC_VOLUME -lt 90 ]]; then
     if [[ "$MIC_NAME" == Yeti* ]]; then
       sketchybar -m --set mic label="$MIC_LABEL " icon= icon.color=$BLUE label.color=$BLUE
     else
       sketchybar -m --set mic label="$MIC_LABEL " icon= icon.color=$ORANGE label.color=$ORANGE
     fi
-  elif [[ $MIC_VOLUME -eq 60 ]]; then
+  elif [[ $MIC_VOLUME -eq 90 ]]; then
     if [[ "$MIC_NAME" == Yeti* ]]; then
       sketchybar -m --set mic label="$MIC_LABEL " icon= icon.color=$BLUE label.color=$BLUE
     else

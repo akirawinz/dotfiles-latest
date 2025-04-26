@@ -54,6 +54,24 @@ set -gq allow-passthrough on
 # image.nvim
 set -g visual-activity off
 
+# When playing around with these, make sure you don't have them defined already
+# in your tmux config file, you can also see that with
+# tmux list-keys | grep -i 'C-l'
+#
+# https://github.com/tmux/tmux/wiki/Modifier-Keys#extended-keys
+# When not running tmux I see what C-enter sends
+# I can do `/bin/cat -v` and then pressed C-enter
+# Ghostty sends: ^[[27;5;13~
+# 
+# The problem is that when I run tmux, nothing is sent, so I'm sending those
+# keys here below
+bind-key -n C-Enter send-keys "\e[27;5;13~"
+
+# I want to send Ctrl+l to clear the screen, ghostty sends ^L
+# This is not a good idea, as I use C-l to navigate to the right mux pane
+# unbind-key -n C-l
+# bind-key -n C-l send-keys C-l
+
 # Alternate session
 # Switch between the last 2 tmux sessions, similar to 'cd -' in the terminal
 # I use this in combination with the `choose-tree` to sort sessions by time
@@ -70,6 +88,21 @@ bind-key Space switch-client -l
 # If for example I'm in the scrolling mode (yellow) can navigate with vim motions
 # search with /, using v for visual mode, etc
 set -g mode-keys vi
+
+bind-key "T" run-shell "sesh connect \"$(
+  sesh list --icons | fzf-tmux -p 80%,70% \
+    --no-sort --ansi --border-label ' sesh ' --prompt '⚡  ' \
+    --header '  ^a all ^t tmux ^g configs ^x zoxide ^d tmux kill ^f find' \
+    --bind 'tab:down,btab:up' \
+    --bind 'ctrl-a:change-prompt(⚡  )+reload(sesh list --icons)' \
+    --bind 'ctrl-t:change-prompt(🪟  )+reload(sesh list -t --icons)' \
+    --bind 'ctrl-g:change-prompt(⚙️  )+reload(sesh list -c --icons)' \
+    --bind 'ctrl-x:change-prompt(📁  )+reload(sesh list -z --icons)' \
+    --bind 'ctrl-f:change-prompt(🔎  )+reload(fd -H -d 2 -t d -E .Trash . ~)' \
+    --bind 'ctrl-d:execute(tmux kill-session -t {2..})+change-prompt(⚡  )+reload(sesh list --icons)' \
+    --preview-window 'right:55%' \
+    --preview 'sesh preview {}'
+)\""
 
 # Border lines between panes are thicker
 # single -> single lines using ACS or UTF-8 characters
@@ -198,14 +231,14 @@ unbind K
 # unbind L
 unbind C-j
 unbind C-k
-unbind C-l
+# unbind C-l
 bind J select-layout even-horizontal
 bind K select-layout even-vertical
 # bind L select-layout tiled
 # bind L run-shell ~/github/dotfiles-latest/tmux/layouts/7030/apply_layout.sh
 bind C-j select-layout main-horizontal
 bind C-k select-layout main-vertical
-bind C-l run-shell ~/github/dotfiles-latest/tmux/layouts/2x3/apply_layout.sh
+# bind C-l run-shell ~/github/dotfiles-latest/tmux/layouts/2x3/apply_layout.sh
 
 # Update: In karabiner elements I remapped hyper+f to ctrl+b which allows me to
 # now use the meta key, just make sure to configure option as alt in your
@@ -234,13 +267,14 @@ tmux_sshonizer_agen="~/github/dotfiles-latest/tmux/tools/linkarzu/tmux-sshonizer
 ssh_select="~/github/dotfiles-latest/tmux/tools/linkarzu/ssh-select.sh"
 # Script below goes through you `~/.ssh/config` file and shows the hosts in an fzf menu
 ssh_config_select="~/github/dotfiles-latest/tmux/tools/linkarzu/ssh_config_select.sh"
-daily_note="~/github/dotfiles-latest/scripts/macos/mac/300-dailyNote.sh"
+daily_note="~/github/dotfiles-latest/scripts/macos/mac/misc/300-dailyNote.sh"
 
 # I tend to forget my karabiner mappings, so this opens the file in a new tmux
 # session
 karabiner_rules="~/github/scripts/macos/mac/301-openKarabinerRules.sh"
 
 colorscheme_selector="~/github/dotfiles-latest/colorscheme/colorscheme-selector.sh"
+script_selector="~/github/dotfiles-latest/scripts/macos/mac/misc/240-systemTask.sh"
 
 # Don't use C-r because it's used by tmux-resurrect
 # Don't use C-e because I'm already using it for sending command to all panes/windows in current session
@@ -301,6 +335,8 @@ unbind 2
 bind-key -r 2 run-shell "tmux neww $karabiner_rules"
 unbind 6
 bind-key -r 6 run-shell "tmux neww $colorscheme_selector"
+unbind 7
+bind-key -r 7 run-shell "tmux neww $script_selector"
 
 ###############################################################################
 
@@ -557,13 +593,13 @@ set -g @plugin 'christoomey/vim-tmux-navigator'
 # # allow tmux-ressurect to capture pane contents
 # set -g @resurrect-capture-pane-contents 'on'
 
-# automatically saves sessions for you every 15 minutes (this must be the last plugin)
-# https://github.com/tmux-plugins/tmux-continuum
-set -g @plugin 'tmux-plugins/tmux-continuum'
-# enable tmux-continuum functionality
-set -g @continuum-restore 'on'
-# Set the save interval in minutes, default is 15
-set -g @continuum-save-interval '5'
+# # automatically saves sessions for you every 15 minutes (this must be the last plugin)
+# # https://github.com/tmux-plugins/tmux-continuum
+# set -g @plugin 'tmux-plugins/tmux-continuum'
+# # enable tmux-continuum functionality
+# set -g @continuum-restore 'on'
+# # Set the save interval in minutes, default is 15
+# set -g @continuum-save-interval '5'
 
 # Initialize TMUX plugin manager
 # (keep this line at the very bottom of tmux.conf)
