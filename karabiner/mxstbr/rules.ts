@@ -157,7 +157,7 @@ const rules: KarabinerRules[] = [
     left_shift: {
       t: app("Ghostty"),
       7: app("Slack"),
-      b: app("Zen"),
+      b: app("Arc"),
       9: app("1Password"),
       8: app("Line"),
       c: app("Claude"),
